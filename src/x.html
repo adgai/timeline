@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Canvas Rect Resize</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+<canvas id="canvas" width="800" height="600"></canvas>
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let rect = {
+        x: 100,
+        y: 100,
+        width: 200,
+        height: 150,  // 固定高度
+        resizing: false,
+        dragging: false,
+        borderWidth: 10,
+    };
+
+    let mouseX, mouseY;
+
+    function drawRect() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+    }
+
+    function isInRect(x, y, rect) {
+        return x > rect.x && x < rect.x + rect.width && y > rect.y && y < rect.y + rect.height;
+    }
+
+    function isInLeftRightBorder(x, y, rect) {
+        const border = rect.borderWidth;
+        const inLeftBorder = x > rect.x - border && x < rect.x + border && y > rect.y && y < rect.y + rect.height;
+        const inRightBorder = x > rect.x + rect.width - border && x < rect.x + rect.width + border && y > rect.y && y < rect.y + rect.height;
+        return inLeftBorder || inRightBorder;
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        mouseX = e.offsetX;
+        mouseY = e.offsetY;
+
+        if (isInLeftRightBorder(mouseX, mouseY, rect)) {
+            rect.resizing = true;
+        } else if (isInRect(mouseX, mouseY, rect)) {
+            rect.dragging = true;
+        }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        mouseX = e.offsetX;
+        mouseY = e.offsetY;
+
+        if (rect.resizing) {
+            const dx = mouseX - rect.x;
+            rect.width = Math.max(dx, 10);  // 保证最小宽度为10
+            mouseX = e.offsetX;
+        } else if (rect.dragging) {
+            const dx = mouseX - rect.x;
+            rect.x += dx;
+            mouseX = e.offsetX;
+        } else if (isInLeftRightBorder(mouseX, mouseY, rect)) {
+            canvas.style.cursor = 'ew-resize';  // 设置光标样式为左右拖动
+        } else {
+            canvas.style.cursor = 'default';  // 恢复默认光标样式
+        }
+
+        drawRect();
+    });
+
+    canvas.addEventListener('mouseup', () => {
+        rect.dragging = false;
+        rect.resizing = false;
+        canvas.style.cursor = 'default';  // 恢复默认光标样式
+    });
+
+    drawRect();
+</script>
+</body>
+</html>

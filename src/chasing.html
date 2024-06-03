@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chasing Representation</title>
+</head>
+<body>
+<canvas id="chasingCanvas" width="400" height="200" style="border:1px solid #000000;"></canvas>
+<script>
+    // 获取Canvas元素和上下文
+    const canvas = document.getElementById('chasingCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // 定义长方形的数量
+    const numRectangles = 10;
+    const rectWidth = 30;
+    const rectHeight = 60;
+    const spacing = 20;
+    const startX = 20;
+    const startY = (canvas.height - rectHeight) / 2;
+
+    // 绘制长方形
+    for (let i = 0; i < numRectangles; i++) {
+        // 计算长方形的位置
+        const x = startX + i * (rectWidth + spacing);
+
+        // 计算颜色渐变
+        const colorValue = Math.floor(255 - (i * 20));
+        const color = `rgb(${colorValue}, ${colorValue}, ${255})`;
+
+        // 设置填充颜色
+        ctx.fillStyle = color;
+
+        // 绘制长方形
+        ctx.fillRect(x, startY, rectWidth, rectHeight);
+
+        // 绘制间隔效果
+        ctx.strokeStyle = 'black';
+        ctx.strokeRect(x, startY, rectWidth, rectHeight);
+    }
+</script>
+</body>
+</html>
