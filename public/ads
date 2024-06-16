@@ -1,0 +1,235 @@
+{
+      //
+      // ctx.beginPath();
+      // ctx.moveTo(0, halfY);
+      // ctx.lineTo(this.canvasWidth, halfY);
+      // ctx.stroke();
+
+      // timeline
+      this.line.push(
+          {
+            startX:0,
+            startY:this.halfY,
+            endX:this.canvasWidth,
+            endY:this.halfY
+          }
+      )
+      const totalMinutes = (endIndex - startIndex) / 1000 / 60;
+      const interval = this.interval// 每10分钟一个刻度
+      const numTicks = totalMinutes / interval;
+      const tickSpacing = this.canvasWidth / numTicks;
+
+      var x = 0
+      var index = startIndex
+      while (index <= endIndex) {
+
+        var tenMinutesMill = 1000 * 60 * interval;
+        var disNextTenMinutes = tenMinutesMill - ((index) % tenMinutesMill);
+
+        if (disNextTenMinutes === 0 || tenMinutesMill === disNextTenMinutes) {
+
+          var isHour = index % (60 * 60 * 1000) === 0;
+          const tickHeight = isHour ? this.hourHeight : this.muniteHeight;
+          // var h = index / (60 * 60 * 1000);
+          var date = new Date(index - 8 * 60 * 60 * 1000);
+          // var date = new Date(index );
+          var h = date.getHours();
+
+          this.line.push(
+              {
+                startX:x,
+                startY:this.halfY,
+                endX:x,
+                endY:this.halfY - tickHeight
+              }
+          )
+
+
+          if (isHour) {
+            this.text.push(
+                {
+                  font: '18px serif',
+                  fillStyle: 'black',
+                  content: h,
+                  startX:x,
+                  startY:this.halfY + 20,
+                  type:'hour'
+                }
+            )
+          }
+
+          var day = format(date, 'yyyy-MM-dd');
+
+          if (h === 0 && isHour) {
+            // ctx.font = '18px serif'; // 字体和大小
+            // ctx.fillStyle = 'black'; // 文字颜色
+            // ctx.fillText(day, x, halfY + 50);
+
+            this.text.push(
+                {
+                  font: '18px serif',
+                  fillStyle: 'black',
+                  content: day,
+                  startX:x,
+                  startY:this.halfY + 50,
+                  type: 'day'
+                }
+            )
+          }
+
+          index += tenMinutesMill
+          x = Math.min(x + tickSpacing, endIndex)
+        } else {
+          index = index + disNextTenMinutes;
+          x = Math.min(x + disNextTenMinutes / interval * tickSpacing, x)
+        }
+
+      }
+
+
+      let actualStartUpY = this.halfY - this.hourHeight - this.actualStartYOffset;
+      for (let i = 0; i < 20; i++) {
+        this.dao.set(
+            actualStartUpY - this.barHeight * i,
+            [
+              0, 0
+            ]
+        )
+      }
+
+      this.events.sort((a, b) => {
+        let aEnd = a.endTime;
+        let aStart = a.startTime;
+
+        let bEnd = b.endTime;
+        let bStart = b.startTime;
+
+        if (aEnd === null) {
+          aEnd = format(new Date(), 'yyyy-MM-dd HH:mm')
+        }
+
+        if (bEnd === null) {
+          bEnd = format(new Date(), 'yyyy-MM-dd HH:mm')
+        }
+
+        if (aStart === aStart) {
+          return aEnd.localeCompare(bEnd)
+        } else {
+          aStart.localeCompare(aStart)
+        }
+      })
+
+      var  colorIndex = 0
+      this.events.forEach(event => {
+
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        let timestamp = now.getTime();
+
+        // 根据时间算x
+        let startX = (Date.parse(event.startTime) - startIndex) / (endIndex - startIndex) * this.canvasWidth;
+        let s = event.endTime;
+        if (s === null) {
+          s = format(new Date(), 'yyyy-MM-dd HH:mm')
+        }
+
+        let endX = (Date.parse(s) - startIndex) / (endIndex - startIndex) * this.canvasWidth;
+        ;
+
+        // get dao
+
+        let yy = this.halfY - this.hourHeight-200
+        let updateValue
+        for (const [key, value] of this.dao) {
+          let vMax = value[1];
+          if (vMax === 0 || vMax + 10 <= startX) {
+            yy = key
+            updateValue = value
+            value[1] = Math.max(vMax, endX)
+            break
+          }
+        }
+
+        // console.log("enentName", event.eventName)
+        //
+        // console.log("dsfsfsfsfs", yy)
+
+        const lastColor = this.lowSaturationColors[colorIndex]
+
+        colorIndex = (colorIndex + 1) % this.lowSaturationColors.length
+
+
+        // ctx.fillStyle = lastColor.hex
+        //
+        // ctx.fillRect(startX, yy, endX - startX, -this.barHeight);
+        this.rect.push(
+            {
+              fillStyle : lastColor.hex,
+              startX:startX,
+              startY:yy,
+              w:endX - startX,
+              h:-this.barHeight
+            }
+        )
+
+        // ctx.fillText("sfsfsf", 100, 100);
+        // ctx.fillStyle = 'rgb(0,0,0)';
+        //
+        // ctx.font = '18px serif'; // 字体和大小
+        // ctx.fillStyle = 'black'; // 文字颜色
+
+        if (event.runing) {
+          // var img = document.querySelector("img");
+          // ctx.drawImage(img, 10, 10);
+
+          var img = new Image();   // 创建一个<img>元素
+          img.src = 'http://localhost:5173/src/assets/run30.png'
+          img.onload = () => {
+            // img.src = '"../assets/run.png"'; // 设置图片源地址
+            // ctx.drawImage(img, startX + 10, yy - 33)
+          }
+          this.img.push(
+              {
+                imgUrl:'http://localhost:5173/src/assets/run30.png',
+                startX: startX + 10,
+                startY:yy-this.barHeight
+              }
+          )
+
+          let text = event.eventName
+          // ctx.fillText(text, startX + this.barHeight + 10, yy - 10);
+
+          this.text.push(
+              {
+                font: '18px serif',
+                fillStyle: 'black',
+                content: text,
+                startX:startX + this.barHeight + 10,
+                startY: yy-10
+              }
+          )
+        } else {
+          let text = event.eventName + " " + event.startTime.split(' ')[1] + "--" + s.split(' ')[1];
+          // ctx.fillText(text, startX + 20, yy - 10);
+          //
+          this.text.push(
+              {
+                font: '18px serif',
+                fillStyle: 'black',
+                content: text,
+                startX:startX + 20,
+                startY: yy-10
+              }
+          )
+
+        }
+
+        //
+        // // ctx.drawImage(img, 10, 10)
+        // ctx.font = '10px sans-serif'
+        // canvas.fillStyle = '#000000'
+      })
+
+
+
+    }

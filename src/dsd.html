@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Canvas Rectangle Hover</title>
+    <style>
+        #myCanvas {
+            border: 1px solid #000000;
+            transition: box-shadow 0.3s ease, border 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+<canvas id="myCanvas" width="500" height="500"></canvas>
+
+<script>
+    const canvas = document.getElementById('myCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // 初始矩形参数
+    const rect = {
+        x: 100,
+        y: 100,
+        width: 150,
+        height: 100
+    };
+
+    // 记录当前是否高亮显示
+    let isHighlighted = false;
+
+    // 绘制矩形函数
+    function drawRectangle(rect, highlight = false) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#FF0000';
+        ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+        if (highlight) {
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = '#0000FF';
+            ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+        }
+    }
+
+    // 初始化绘制矩形
+    drawRectangle(rect);
+
+    // 检查鼠标是否在矩形内
+    function isMouseInRect(mouseX, mouseY, rect) {
+        return mouseX >= rect.x && mouseX <= rect.x + rect.width &&
+            mouseY >= rect.y && mouseY <= rect.y + rect.height;
+    }
+
+    // 监听鼠标移动事件
+    canvas.addEventListener('mousemove', function(event) {
+        const rectCanvas = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rectCanvas.left;
+        const mouseY = event.clientY - rectCanvas.top;
+
+        const shouldHighlight = isMouseInRect(mouseX, mouseY, rect);
+        if (shouldHighlight !== isHighlighted) {
+            isHighlighted = shouldHighlight;
+            drawRectangle(rect, isHighlighted);
+            updateCanvasStyle(isHighlighted);
+        }
+    });
+
+    // 监听鼠标离开画布事件
+    canvas.addEventListener('mouseleave', function() {
+        if (isHighlighted) {
+            isHighlighted = false;
+            drawRectangle(rect, false);
+            updateCanvasStyle(false);
+        }
+    });
+
+    // 更新画布样式
+    function updateCanvasStyle(highlight) {
+        if (highlight) {
+            canvas.style.boxShadow = '0 0 10px 5px rgba(0, 0, 255, 0.5)';
+            canvas.style.border = '2px solid #0000FF';
+        } else {
+            canvas.style.boxShadow = 'none';
+            canvas.style.border = '1px solid #000000';
+        }
+    }
+</script>
+</body>
+</html>
