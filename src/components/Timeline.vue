@@ -1,34 +1,55 @@
 <template>
-  <img src="../assets/run30.png">
-  <div class="coordinates">
-    X: {{ mouseX }}, Y: {{ mouseY }}
-  </div>
-  <div>
-    internal:{{ interval }}
-  </div>
-  <div>
-    yidong:{{ number }}
+  <div class="debug-div" v-if="debug">
+    <img src="../assets/run30.png">
+    <div class="coordinates">
+      X: {{ mouseX }}, Y: {{ mouseY }}
+    </div>
+    <div>
+      internal:{{ interval }}
+    </div>
+    <div>
+      yidong:{{ number }}
+    </div>
+
   </div>
   <div class="canvas-container">
-<!--    <canvas ref="canvas"-->
-<!--            @mousemove="this.getMousePosition"-->
-<!--            :width="canvasWidth" :height="canvasHeight" style=""></canvas>-->
+    <!--    <canvas ref="canvas"-->
+    <!--            @mousemove="this.getMousePosition"-->
+    <!--            :width="canvasWidth" :height="canvasHeight" style=""></canvas>-->
 
     <canvas ref="canvas2"
             @mousemove="this.getMousePosition"
             :width="canvasWidth" :height="canvasHeight" style=""></canvas>
 
   </div>
-  <div class="record-container">
-    <div class="record">
-      <input class="e-input" v-model="eventName">
-      <div>
-        <button @click="record" class="button">记录</button>
-        <button @click="recordFinishLast" class="button">记录 & 完成上一件事</button>
-        <button @click="save" class="button">save</button>
+  <div class="events-container">
+
+    <div class="events">
+      <div v-for="item in sortedEvents" :key="item.id" class="item">
+        <div>
+          {{ item.eventName }}
+          : {{ formatDateTime(item.startTime) }} - {{item.endTime === null ? 'now' : formatDateTime(item.endTime)}}
+        </div>
+
+        <div v-if="item.runing">
+
+          <button>end</button>
+        </div>
       </div>
     </div>
+    <div class="record-container">
+      <div class="record">
+        <input class="e-input" v-model="eventName">
+        <div class="event-btn">
+          <button @click="record" class="button">记录</button>
+          <button @click="recordFinishLast" class="button">记录 & 完成</button>
+          <button @click="writeFile" class="button">xxxxxxxxxxxxxxxx</button>
+        </div>
+      </div>
+    </div>
+
   </div>
+
 </template>
 
 <script>
@@ -38,11 +59,12 @@ import {format} from 'date-fns';
 export default {
   data() {
     return {
+      debug:false,
       line:[],
       text:[],
       rect:[],
       img:[],
-       barHeight :33,
+      barHeight :33,
       muniteHeight:5,
       hourHeight:15,
       actualStartYOffset:10,
@@ -78,7 +100,7 @@ export default {
         {hex: "#FAEBD7", name: "AntiqueWhite"}
       ],
       canvasWidth: window.innerWidth - 200,
-      canvasHeight: 800,
+      canvasHeight: 500,
       halfY:400,
       events: [
         {
@@ -93,42 +115,31 @@ export default {
           endTime: null,
           runing: true
         },
-        // {
-        //   eventName: "999",
-        //   startTime: "2024-06-04 00:00",
-        //   endTime: "2024-06-04 21:00",
-        //   runing: false
-        // },
-        // {
-        //   eventName: "eating",
-        //   startTime: "2024-06-04 01:22",
-        //   endTime: "2024-06-04 05:00",
-        //   runing: false
-        // },
-        //
-        // {
-        //   eventName: "sleeping",
-        //   startTime: "2024-06-04 11:22",
-        //   endTime: "2024-06-04 21:00",
-        //   runing: false
-        // },
-        // {
-        //   eventName: "hit doudou",
-        //   startTime: "2024-06-04 11:22",
-        //   endTime: "2024-06-04 15:00",
-        //   runing: false
-        // },
-        //
-        // {
-        //   eventName: "857",
-        //   startTime: "2024-06-04 16:22",
-        //   endTime: "2024-06-04 19:00",
-        //   runing: false
-        // },
 
       ],
       dao: new Map()
     };
+  },
+  computed: {
+    sortedEvents() {
+      return this.events.slice().sort((a, b) => {
+        // 如果 endTime 为空，排在前面
+        if (a.endTime === null && b.endTime !== null) return -1;
+        if (a.endTime !== null && b.endTime === null) return 1;
+
+        // 如果 endTime 都不为空，按 endTime 倒序排序
+        if (a.endTime !== null && b.endTime !== null) {
+          if (a.endTime > b.endTime) return -1;
+          if (a.endTime < b.endTime) return 1;
+        }
+
+        // 如果 endTime 相同，按 startTime 倒序排序
+        if (a.startTime > b.startTime) return -1;
+        if (a.startTime < b.startTime) return 1;
+
+        return 0;
+      });
+    }
   },
   mounted() {
     // this.drawTimeline();
@@ -137,12 +148,25 @@ export default {
     this.$refs.canvas2.addEventListener('wheel', this.handleWheel1)
   },
   methods: {
+    async writeFile() {
+      const filename = 'output.txt';
+      const content = 'Hello, world!';
+      try {
+        const message = await window.electron.writeFile(filename, content);
+        console.log(message);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    },
+    formatDateTime(dateTime) {
+      const date = new Date(dateTime);
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${month}-${day} ${hours}:${minutes}`;
+    },
     draw(){
-      // clear
-      this.line = []
-      this.text = []
-      this.rect = []
-      this.img = []
 
       // calc
       this.calcPosition(this.interval,this.startIndex,this.endIndex)
@@ -175,9 +199,6 @@ export default {
         ctx.fillStyle = 'black'; // 文字颜色
         ctx.fillText(value.content, value.startX, value.startY);
       })
-
-
-
 
       this.img.forEach(value => {
         var img = new Image();   // 创建一个<img>元素
@@ -326,7 +347,11 @@ export default {
         }
 
         let endX = (Date.parse(s) - startIndex) / (endIndex - startIndex) * this.canvasWidth;
-        ;
+
+
+        if (endX < 0){
+          return
+        }
 
         // get dao
 
@@ -486,7 +511,7 @@ export default {
 
       this.eventName = ''
 
-      this.drawTimeline()
+      this.draw()
     },
     recordFinishLast() {
       const eventMap = new Map();
@@ -521,7 +546,7 @@ export default {
 
       this.eventName = ''
 
-      this.drawTimeline()
+      this.draw()
     },
     handleWheel1(event) {
       // 阻止默认滚动行为
@@ -936,7 +961,7 @@ export default {
 
     },
     calcJi() {
-         var typeToListMap = this.text.reduce((acc, item) => {
+      var typeToListMap = this.text.reduce((acc, item) => {
         // 获取当前项的 category 值
         const key = item.type;
 
@@ -980,6 +1005,17 @@ export default {
 </script>
 
 <style>
+.event-btn{
+  display: flex;
+  flex-direction: row;
+}
+.events-container{
+  justify-content: space-between;
+  display: flex;
+  flex-direction: row;
+  margin-left: 100px;
+  margin-right: 100px;
+}
 .canvas-container {
   display: flex;
   justify-content: center;
@@ -994,7 +1030,7 @@ canvas {
 }
 
 .record-container {
-  margin-top: 100px;
+//margin-top: 100px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1002,8 +1038,15 @@ canvas {
 }
 
 .e-input {
-  min-width: 500px;
-  min-height: 200px;
+  min-width: 200px;
+  min-height: 50px;
+
+  flex-grow: 1;
+//border: none;
+  outline: none;
+  font-size: 16px;
+  padding: 8px;
+  border-radius: 24px;
 }
 
 .record {
@@ -1016,8 +1059,8 @@ canvas {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100px;
-  height: 100px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   background-color: #4CAF50;
   border: none;
@@ -1055,5 +1098,8 @@ canvas {
   left: 0;
   border-bottom-color: transparent;
   border-left-color: transparent;
+}
+.events .item{
+  display: flex;
 }
 </style>
